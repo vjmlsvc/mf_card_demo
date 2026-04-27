@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creature Card — v18</title>
+<style>
+  :root {
+    --font-sans: system-ui, -apple-system, sans-serif;
+    --color-background-primary: #1a1a1a;
+    --color-background-secondary: #2a2a2a;
+    --color-background-tertiary: #333;
+    --color-background-info: #1a2a3a;
+    --color-text-primary: #f0f0f0;
+    --color-text-secondary: #aaa;
+    --color-text-tertiary: #777;
+    --color-text-info: #7ab8f5;
+    --color-border-secondary: #444;
+    --color-border-tertiary: #333;
+    --color-border-info: #3a5a7a;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+    --art-full: 200px;
+    --art-peek: 48px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-sans);
+    background: #111;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px; gap: 20px;
+  }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .ctrl-btn {
+    font-size: 13px; padding: 7px 13px; border-radius: var(--border-radius-md);
+    border: 1.5px solid transparent;
+    color: rgba(255,255,255,0.75); cursor: pointer;
+    min-height: 40px; font-family: inherit;
+    display: flex; align-items: center; gap: 6px;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .ctrl-btn .btn-emoji { font-size: 16px; line-height: 1; }
+  .ctrl-btn .btn-label { font-size: 12px; font-weight: 500; letter-spacing: 0.2px; }
+  /* kingdom tints */
+  .ctrl-btn.fauna { background: rgba(122,53,0,0.35); border-color: rgba(122,53,0,0.6); }
+  .ctrl-btn.fauna:hover { background: rgba(122,53,0,0.55); }
+  .ctrl-btn.fauna.active { background: #7a3500; border-color: #b05010; color: #fff; }
+  .ctrl-btn.flora { background: rgba(30,74,8,0.35); border-color: rgba(30,74,8,0.6); }
+  .ctrl-btn.flora:hover { background: rgba(30,74,8,0.55); }
+  .ctrl-btn.flora.active { background: #1e4a08; border-color: #3a8010; color: #fff; }
+  .ctrl-btn.funga { background: rgba(58,18,96,0.35); border-color: rgba(58,18,96,0.6); }
+  .ctrl-btn.funga:hover { background: rgba(58,18,96,0.55); }
+  .ctrl-btn.funga.active { background: #3a1260; border-color: #6a30a0; color: #fff; }
+
+  /* ── Card shell ── */
+  .card-wrap { position: relative; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 20px; }
+  .card { width: 300px; border-radius: 14px; overflow: hidden; border: 2px solid transparent; color: #fff; font-size: 15px; }
+  .card.fauna { border-color: #7a3500; background: #7a3500; }
+  .card.flora  { border-color: #1e4a08; background: #1e4a08; }
+  .card.funga  { border-color: #3a1260; background: #3a1260; }
+
+  .divider { height: 1px; background: rgba(255,255,255,0.1); }
+
+  /* ── Row 1: hex · name · cost ── */
+  .row-header { display: flex; align-items: center; gap: 9px; padding: 12px 12px 10px; }
+  .creature-name { font-size: 19px; font-weight: 600; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cost-badge { background: rgba(255,255,255,0.18); border-radius: 8px; padding: 4px 9px; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+  .flux-symbol { font-size: 13px; opacity: 0.7; }
+
+  /* ── Row 2: icons with tooltip ── */
+  .row-icons { display: flex; align-items: center; gap: 6px; padding: 7px 12px; flex-wrap: wrap; }
+  .icon-pill {
+    height: 34px; min-width: 34px; border-radius: 6px;
+    background: rgba(255,255,255,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; padding: 0 7px; gap: 4px;
+    cursor: pointer; position: relative; user-select: none;
+  }
+  .icon-pill:hover { background: rgba(255,255,255,0.2); }
+  /* tooltip */
+  .icon-pill .tip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.88);
+    color: #fff; font-size: 12px;
+    white-space: nowrap; padding: 4px 8px;
+    border-radius: 6px;
+    pointer-events: none;
+    z-index: 300;
+  }
+  .icon-pill:hover .tip,
+  .icon-pill.tip-open .tip { display: block; }
+
+  /* ── Row 3: art — collapsible ── */
+  .row-art-wrap { position: relative; overflow: hidden; transition: height 0.25s ease; }
+  .row-art-wrap.art-open  { height: var(--art-full); }
+  .row-art-wrap.art-closed { height: var(--art-peek); }
+  .row-art {
+    width: 100%; height: var(--art-full);
+    background: rgba(0,0,0,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 110px; position: relative;
+  }
+  .art-caption { position: absolute; bottom: 6px; left: 0; right: 0; text-align: center; font-size: 11px; color: rgba(255,255,255,0.35); letter-spacing: 0.4px; }
+  /* peek gradient when closed */
+  .art-peek-fade {
+    display: none;
+    position: absolute; bottom: 0; left: 0; right: 0; height: 28px;
+    background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.55));
+    pointer-events: none;
+  }
+  .art-closed .art-peek-fade { display: block; }
+  /* shift art to show vertical center when collapsed */
+  .art-closed .row-art {
+    transform: translateY(calc((var(--art-peek) - var(--art-full)) / 2));
+    transition: transform 0.25s ease;
+  }
+  .art-open .row-art {
+    transform: translateY(0);
+    transition: transform 0.25s ease;
+  }
+  /* collapse toggle button */
+  .art-toggle {
+    position: absolute; top: 6px; right: 6px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(0,0,0,0.45); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.6); font-size: 11px;
+    transition: transform 0.2s; z-index: 2;
+  }
+  .art-toggle:hover { background: rgba(0,0,0,0.65); color: #fff; }
+  .art-closed .art-toggle { transform: rotate(180deg); }
+
+  /* ── Row 4: stats ── */
+  .row-stats { display: grid; gap: 0; padding: 0; }
+  /* combat: 2×2, non-combat: 1×2 */
+  .row-stats.combat    { grid-template-columns: 1fr 1fr; }
+  .row-stats.noncombat { grid-template-columns: 1fr 1fr; }
+  .stat-cell { padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; border-right: 1px solid rgba(255,255,255,0.08); border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .stat-cell:nth-child(even) { border-right: none; }
+  .stat-cell:nth-last-child(-n+2) { border-bottom: none; }
+  .stat-cell-label { font-size: 11px; color: rgba(255,255,255,0.45); letter-spacing: 0.3px; }
+  .stat-cell-val { font-size: 18px; font-weight: 500; color: #fff; }
+  .stat-cell-val.na { font-size: 14px; color: rgba(255,255,255,0.2); }
+
+  /* ── Row 5: eco header ── */
+  .row-eco-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; }
+  .spec-btn { font-size: 14px; font-weight: 500; padding: 5px 14px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,0.45); background: rgba(255,255,255,0.12); color: #fff; cursor: pointer; font-family: inherit; min-height: 36px; }
+  .spec-btn:hover { background: rgba(255,255,255,0.22); }
+  .matrix-icon-btn { width: 36px; height: 36px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .matrix-icon-btn:hover { background: rgba(255,255,255,0.16); }
+
+  /* ── Row 6: prefs ── */
+  .row-prefs { padding: 2px 12px 10px; }
+  .pref-label { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 6px; margin-bottom: 3px; }
+  .pref-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 2px; }
+  .chip { font-size: 14px; padding: 5px 11px; border-radius: 6px; cursor: pointer; user-select: none; border: none; font-family: inherit; display: inline-flex; align-items: center; gap: 4px; }
+  .chip:hover { opacity: 0.82; }
+  .chip.needs   { background: rgba(255,255,255,0.32); color: #fff; font-weight: 600; }
+  .chip.prefers { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.88); font-weight: 500; }
+  .chip.ideal   { background: rgba(80,200,100,0.28); color: #9aefaa; font-weight: 500; }
+  .chip.avoids  { background: rgba(255,80,50,0.26); color: #ffb8a8; }
+  .chip-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.45); flex-shrink: 0; }
+  .chip.avoids .chip-dot { background: rgba(255,160,130,0.55); }
+
+  /* ── Abilities ── */
+  .ability-row { display: flex; align-items: center; padding: 11px 12px; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); cursor: pointer; user-select: none; }
+  .ability-row:hover { background: rgba(255,255,255,0.04); }
+  .ability-name { font-size: 15px; font-weight: 500; flex: 1; }
+  .ability-arrow { font-size: 11px; color: rgba(255,255,255,0.3); flex-shrink: 0; transition: transform 0.15s; }
+  .ability-arrow.open { transform: rotate(180deg); }
+  .ability-desc-row { display: none; padding: 0 12px 11px; font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.5; }
+  .ability-desc-row.open { display: block; }
+
+  /* ── Popover ── */
+  .popover { display: none; position: fixed; z-index: 400; width: 230px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-lg); padding: 12px 14px; color: var(--color-text-primary); pointer-events: none; box-shadow: 0 4px 24px rgba(0,0,0,0.5); }
+  .popover.visible { display: block; }
+  .pop-kind { font-size: 10px; font-weight: 500; letter-spacing: 0.6px; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 3px; }
+  .pop-name { font-size: 16px; font-weight: 500; margin-bottom: 6px; }
+  .pop-desc { font-size: 12px; color: var(--color-text-secondary); line-height: 1.55; margin-bottom: 8px; }
+  .pop-attrs { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
+  .pop-attr { font-size: 11px; padding: 2px 7px; border-radius: 4px; background: var(--color-background-info); color: var(--color-text-info); }
+  .pop-tiles-label { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 4px; letter-spacing: 0.4px; text-transform: uppercase; }
+  .pop-tiles { display: flex; flex-wrap: wrap; gap: 4px; pointer-events: all; }
+  .pop-tile { font-size: 11px; padding: 2px 7px; border-radius: 4px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); color: var(--color-text-secondary); cursor: pointer; font-family: inherit; }
+  .pop-tile:hover { background: var(--color-background-tertiary); color: var(--color-text-primary); }
+
+  /* ── Matrix overlay ── */
+  .matrix-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100; }
+  .matrix-overlay.open { display: flex; }
+  .matrix-box { background: var(--color-background-primary); border-radius: var(--border-radius-lg); padding: 16px 18px; color: var(--color-text-primary); border: 0.5px solid var(--color-border-secondary); }
+  .matrix-box-title { font-size: 13px; font-weight: 500; margin-bottom: 12px; }
+  .close-btn { font-size: 13px; opacity: 0.5; cursor: pointer; float: right; padding: 2px 6px; background: none; border: none; color: var(--color-text-primary); font-family: inherit; }
+  .close-btn:hover { opacity: 1; }
+  .elev-label { font-size: 10px; font-weight: 500; color: var(--color-text-tertiary); margin-bottom: 3px; margin-top: 8px; letter-spacing: 0.4px; text-transform: uppercase; }
+  .elev-label:first-of-type { margin-top: 0; }
+  .cube-table { border-collapse: separate; border-spacing: 2px; }
+  .cube-header { font-size: 13px; text-align: center; padding-bottom: 2px; width: 22px; color: var(--color-text-secondary); }
+  .cube-side-header { font-size: 13px; text-align: center; width: 18px; padding-right: 2px; color: var(--color-text-secondary); }
+  .matrix-cell { width: 22px; height: 16px; border-radius: 3px; cursor: pointer; border: 0.5px solid transparent; transition: transform 0.1s; display: block; }
+  .matrix-cell:hover { transform: scale(1.2); }
+  .matrix-cell.fit-ideal { background: #2d8a3e; }
+  .matrix-cell.fit-good  { background: #9a7010; }
+  .matrix-cell.fit-bad   { background: #8a3a10; }
+  .matrix-cell.fit-unfit { background: rgba(0,0,0,0.35); border-color: rgba(255,255,255,0.08); }
+  .matrix-cell.fit-none  { background: rgba(0,0,0,0.35); border-color: rgba(255,255,255,0.08); }
+  .matrix-legend { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .leg-item { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: var(--color-text-secondary); letter-spacing: 0.3px; }
+  .leg-swatch { width: 22px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <button class="ctrl-btn fauna active" onclick="switchCard(this,'corvid')"><span class="btn-emoji">🦅</span><span class="btn-label">Corvid</span></button>
+  <button class="ctrl-btn fauna" onclick="switchCard(this,'orca')"><span class="btn-emoji">🐋</span><span class="btn-label">Orca</span></button>
+  <button class="ctrl-btn fauna" onclick="switchCard(this,'hyena')"><span class="btn-emoji">🦴</span><span class="btn-label">Hyena</span></button>
+  <button class="ctrl-btn fauna" onclick="switchCard(this,'wolf')"><span class="btn-emoji">🐺</span><span class="btn-label">Wolf</span></button>
+  <button class="ctrl-btn flora" onclick="switchCard(this,'ironwood')"><span class="btn-emoji">🌳</span><span class="btn-label">Ironwood</span></button>
+  <button class="ctrl-btn funga" onclick="switchCard(this,'veilcap')"><span class="btn-emoji">🍄</span><span class="btn-label">Veilcap</span></button>
+</div>
+
+<div class="card-wrap">
+  <div class="card" id="card"></div>
+</div>
+
+<div class="matrix-overlay" id="matrixOverlay" onclick="handleOverlayClick(event)">
+  <div class="matrix-box" id="matrixBox">
+    <button class="close-btn" onclick="closeMatrix()">close ×</button>
+    <div id="matrixCube"></div>
+    <div class="matrix-legend">
+      <div class="leg-item"><div class="leg-swatch" style="background:#2d8a3e"></div>ideal</div>
+      <div class="leg-item"><div class="leg-swatch" style="background:#9a7010"></div>good</div>
+      <div class="leg-item"><div class="leg-swatch" style="background:#8a3a10"></div>bad</div>
+      <div class="leg-item"><div class="leg-swatch" style="background:rgba(0,0,0,0.35);border:0.5px solid rgba(255,255,255,0.08)"></div>unfit</div>
+    </div>
+  </div>
+</div>
+
+<div class="popover" id="popover">
+  <div class="pop-kind" id="popKind"></div>
+  <div class="pop-name" id="popName"></div>
+  <div class="pop-desc" id="popDesc"></div>
+  <div class="pop-attrs" id="popAttrs"></div>
+  <div class="pop-tiles-label" id="popTilesLabel"></div>
+  <div class="pop-tiles" id="popTiles"></div>
+</div>
+
+<script>
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const DOT_R=3.8,STEP_X=DOT_R*2*2.0,STEP_Y=DOT_R*Math.sqrt(3)*2.0,PAD=DOT_R*2.2,FIXED_SIZE=26;
+function dotClusterSVG(positions){
+  const coords=positions.map(([q,r])=>({x:STEP_X*(q+r*0.5),y:STEP_Y*r}));
+  const xs=coords.map(c=>c.x),ys=coords.map(c=>c.y);
+  const minX=Math.min(...xs),minY=Math.min(...ys),maxX=Math.max(...xs),maxY=Math.max(...ys);
+  const cW=(maxX-minX)+PAD*2,cH=(maxY-minY)+PAD*2,vbSize=Math.max(cW,cH);
+  const offX=(vbSize-cW)/2,offY=(vbSize-cH)/2;
+  const circles=coords.map(c=>{
+    const cx=(c.x-minX+PAD+offX).toFixed(2),cy=(c.y-minY+PAD+offY).toFixed(2);
+    return `<circle cx="${cx}" cy="${cy}" r="${DOT_R}" fill="rgba(255,255,255,0.9)"/>`;
+  });
+  return `<svg viewBox="0 0 ${vbSize.toFixed(2)} ${vbSize.toFixed(2)}" xmlns="http://www.w3.org/2000/svg" style="width:${FIXED_SIZE}px;height:${FIXED_SIZE}px;flex-shrink:0;display:block">${circles.join('')}</svg>`;
+}
+
+function gridIconSVG(){
+  let d='';
+  for(let r=0;r<3;r++) for(let c=0;c<3;c++)
+    d+=`<rect x="${2+c*7}" y="${2+r*7}" width="5" height="5" rx="1" fill="rgba(255,255,255,0.75)"/>`;
+  return `<svg width="18" height="18" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg">${d}</svg>`;
+}
+
+// ── Terrain ───────────────────────────────────────────────────────────────────
+const TERRAIN_GRID={
+  '-1,-1,-1':'cirque',    '-1,-1,0':'ice desert', '-1,-1,1':'crag',
+  '-1,0,-1': 'ice cave',  '-1,0,0': 'permafrost', '-1,0,1': 'mountain',
+  '-1,1,-1': 'ice shelf', '-1,1,0': 'tarn',       '-1,1,1': 'glacier',
+  '0,-1,-1': 'gorge',     '0,-1,0': 'hardpan',    '0,-1,1': 'badlands',
+  '0,0,-1':  'cave',      '0,0,0':  'plains',      '0,0,1':  'hill',
+  '0,1,-1':  'ocean',     '0,1,0':  'wetlands',   '0,1,1':  'rapids',
+  '1,-1,-1': 'fissure',   '1,-1,0': 'desert',     '1,-1,1': 'mesa',
+  '1,0,-1':  'lava tube', '1,0,0':  'mudflats',   '1,0,1':  'volcano',
+  '1,1,-1':  'vent',      '1,1,0':  'swamp',      '1,1,1':  'geyser',
+};
+const TERRAIN_COORDS={};
+Object.entries(TERRAIN_GRID).forEach(([k,n])=>{
+  const [t,h,e]=k.split(',').map(Number);
+  TERRAIN_COORDS[n]={t,h,e};
+});
+const ALL_TERRAINS=Object.values(TERRAIN_GRID);
+const TERRESTRIAL=ALL_TERRAINS.filter(n=>!(TERRAIN_COORDS[n].h===1&&TERRAIN_COORDS[n].e===-1));
+const OCEANIC=ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].h===1&&TERRAIN_COORDS[n].e===-1);
+
+const GROUP_MEMBERS={
+  // ── Water meta-groups ──
+  river:          ['rapids','wetlands'],
+  oceanic:        ['ice shelf','ocean','vent'],
+  'flowing water':['rapids','wetlands','ice shelf','ocean','vent'],
+  'standing water':['tarn','wetlands','swamp'],
+  freshwater:     ['tarn','wetlands','rapids'],
+  saline:         ['ice shelf','ocean','vent','wetlands'],
+  // ── Climate / landscape meta-groups ──
+  arctic:         ['ice shelf','tarn','glacier'],
+  glacial:        ['crag','cirque','glacier','tarn'],
+  volcanic:       ['fissure','lava tube','vent','volcano','geyser'],
+  // ── Subterranean meta-groups ──
+  cavern:         ['ice cave','cave','lava tube'],
+  rift:           ['fissure','gorge'],
+  // ── Broad ──
+  terrestrial:    TERRESTRIAL,
+  // ── Attributes ──
+  cold:  ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===-1),
+  warm:  ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===0),
+  hot:   ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===1),
+  wet:   ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].h===1),
+  damp:  ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].h===0),
+  dry:   ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].h===-1),
+  deep:  ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].e===-1),
+  flat:  ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].e===0),
+  high:  ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].e===1),
+};
+
+function expandChip(chip){
+  if(chip.type==='terrain') return [chip.label];
+  return GROUP_MEMBERS[chip.label]||[];
+}
+
+// ── Fitness ───────────────────────────────────────────────────────────────────
+function computeFitness(c){
+  const tier=c.specialist;
+  const needSets=(c.needs||[]).map(expandChip);
+  const preferSet=new Set((c.prefers||[]).flatMap(expandChip));
+  const idealSet=new Set((c.idealTiles||[]).flatMap(expandChip));
+  const avoidChips=c.avoids||[];
+  const result={};
+  ALL_TERRAINS.forEach(terrain=>{
+    const avoidCount=avoidChips.filter(ch=>expandChip(ch).includes(terrain)).length;
+    const needsTotal=needSets.length;
+    let needsMetCount=0;
+    if(needsTotal>0) needSets.forEach(s=>{if(s.includes(terrain))needsMetCount++;});
+    if(needsTotal>0&&needsMetCount===0){result[terrain]='unfit';return;}
+    const prefersThis=preferSet.has(terrain);
+    const avoidsThis=avoidCount>0;
+    const multiAvoid=avoidCount>1;
+    let fit;
+    if(tier==='specialist'){
+      const allMet=(needsTotal===0||needsMetCount===needsTotal);
+      fit=(!allMet||avoidsThis)?'unfit':'good';
+    } else if(tier==='adaptable'){
+      if(multiAvoid) fit='unfit';
+      else if(avoidsThis&&!prefersThis) fit='unfit';
+      else if(avoidsThis&&prefersThis) fit='bad';
+      else if(prefersThis) fit='good';
+      else fit='bad';
+    } else {
+      if(multiAvoid) fit='unfit';
+      else if(avoidsThis) fit='bad';
+      else if(prefersThis) fit='good';
+      else fit='bad';
+    }
+    if(fit==='good'&&idealSet.has(terrain)) fit='ideal';
+    result[terrain]=fit;
+  });
+  return result;
+}
+
+// ── Defs ──────────────────────────────────────────────────────────────────────
+const SPECIALIST_DEFS={
+  generalist:{label:'Generalist',desc:'Must meet at least one need (if any). Otherwise fits any terrain unless explicitly avoided. Avoided terrain is bad; double-avoided terrain is unfit. Preferred terrain is good; ideal terrain is ideal.'},
+  adaptable: {label:'Adaptable', desc:'Must meet at least one need (if any). Prefers-only terrain is good. Avoids-only terrain is unfit. Both prefers and avoids is bad. Neither is bad. Ideal terrain upgrades good to ideal.'},
+  specialist:{label:'Specialist',desc:'Must meet every need. Failing any need means unfit. When all needs are met, avoided terrain is still unfit. Ideal terrain upgrades good to ideal.'},
+};
+
+const TERRAIN_DEFS={
+  // ── Water meta-groups ──
+  river:           {kind:'meta-group',desc:'Surface flowing or slow water. The full river continuum from mountain stream to delta.',attrs:['wet','not deep'],tiles:['rapids','wetlands']},
+  oceanic:         {kind:'meta-group',desc:'Deep salt water. Open ocean, polar shelves, and hydrothermal vents.',attrs:['wet','deep','saline'],tiles:['ice shelf','ocean','vent']},
+  'flowing water': {kind:'meta-group',desc:'The connected global water system. River and oceanic combined.',attrs:['wet','connected'],tiles:['rapids','wetlands','ice shelf','ocean','vent']},
+  'standing water':{kind:'meta-group',desc:'Still or slow surface water. Flat wet terrain only.',attrs:['wet','flat'],tiles:['tarn','wetlands','swamp']},
+  freshwater:      {kind:'meta-group',desc:'Non-saline surface water. Lakes, rivers, and wetlands.',attrs:['wet','non-salt'],tiles:['tarn','wetlands','rapids']},
+  saline:          {kind:'meta-group',desc:'Salt-tolerant water. Oceanic plus estuarine and coastal wetlands.',attrs:['wet','saline'],tiles:['ice shelf','ocean','vent','wetlands']},
+  // ── Climate / landscape meta-groups ──
+  arctic:          {kind:'meta-group',desc:'Harsh cold wet terrain. Ice-dominated environments.',attrs:['cold','wet'],tiles:['ice shelf','tarn','glacier']},
+  glacial:         {kind:'meta-group',desc:'Glacially formed terrain. Ice, carved rock, and meltwater.',attrs:['cold'],tiles:['crag','cirque','glacier','tarn']},
+  volcanic:        {kind:'meta-group',desc:'Geothermally active terrain. Hot and non-flat.',attrs:['hot','non-flat'],tiles:['fissure','lava tube','vent','volcano','geyser']},
+  // ── Subterranean meta-groups ──
+  cavern:          {kind:'meta-group',desc:'Damp enclosed underground cavities. Low light, stable humidity.',attrs:['damp','deep'],tiles:['ice cave','cave','lava tube']},
+  rift:            {kind:'meta-group',desc:'Deep dry cuts in terrain. Open to sky but sunken.',attrs:['dry','deep'],tiles:['fissure','gorge']},
+  // ── Broad ──
+  terrestrial:     {kind:'meta-group',desc:'Land-based terrain. Excludes deep+wet tiles.',attrs:['not (wet+deep)'],tiles:TERRESTRIAL},
+  cold:  {kind:'attribute',desc:'Cold temperature.',attrs:['-1 temp'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===-1)},
+  warm:  {kind:'attribute',desc:'Temperate conditions.',attrs:['0 temp'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===0)},
+  hot:   {kind:'attribute',desc:'Elevated thermal conditions.',attrs:['+1 temp'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===1)},
+  wet:   {kind:'attribute',desc:'High moisture — water present.',attrs:['+1 humidity'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].h===1)},
+  damp:  {kind:'attribute',desc:'Moderate moisture.',attrs:['0 humidity'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].h===0)},
+  dry:   {kind:'attribute',desc:'Very low moisture.',attrs:['-1 humidity'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].h===-1)},
+  high:  {kind:'attribute',desc:'Elevated terrain.',attrs:['+1 elevation'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].e===1)},
+  flat:  {kind:'attribute',desc:'Flat terrain at mid elevation.',attrs:['0 elevation'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].e===0)},
+  deep:  {kind:'attribute',desc:'Below-ground or deep underwater.',attrs:['-1 elevation'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].e===-1)},
+  cirque:       {kind:'terrain',desc:'Cold, dry, deep. Glacially carved bowl.',attrs:['cold','dry','deep'],tiles:[]},
+  'ice desert': {kind:'terrain',desc:'Cold, dry, flat. Cold arid flatland.',attrs:['cold','dry','flat'],tiles:[]},
+  crag:         {kind:'terrain',desc:'Cold, dry, high. Wind-scoured rocky peak.',attrs:['cold','dry','high'],tiles:[]},
+  'ice cave':   {kind:'terrain',desc:'Cold, damp, deep. Subterranean cavity in ice.',attrs:['cold','damp','deep'],tiles:[]},
+  permafrost:   {kind:'terrain',desc:'Cold, damp, flat. Permanently frozen ground.',attrs:['cold','damp','flat'],tiles:[]},
+  mountain:     {kind:'terrain',desc:'Cold, damp, high. Rocky peak, moderate moisture.',attrs:['cold','damp','high'],tiles:[]},
+  'ice shelf':  {kind:'terrain',desc:'Cold, wet, deep. Coastal ice above open water.',attrs:['cold','wet','deep'],tiles:[]},
+  tarn:         {kind:'terrain',desc:'Cold, wet, flat. A glacial lake. Still, cold, clear.',attrs:['cold','wet','flat'],tiles:[]},
+  glacier:      {kind:'terrain',desc:'Cold, wet, high. Slow-moving ice at altitude.',attrs:['cold','wet','high'],tiles:[]},
+  gorge:        {kind:'terrain',desc:'Warm, dry, deep. A deep narrow valley.',attrs:['warm','dry','deep'],tiles:[]},
+  hardpan:      {kind:'terrain',desc:'Warm, dry, flat. Compacted dry clay.',attrs:['warm','dry','flat'],tiles:[]},
+  badlands:     {kind:'terrain',desc:'Warm, dry, high. Eroded, rugged, exposed.',attrs:['warm','dry','high'],tiles:[]},
+  cave:         {kind:'terrain',desc:'Warm, damp, deep. A temperate underground cavity.',attrs:['warm','damp','deep'],tiles:[]},
+  plains:       {kind:'terrain',desc:'Warm, damp, flat. The default temperate biome.',attrs:['warm','damp','flat'],tiles:[]},
+  hill:         {kind:'terrain',desc:'Warm, damp, high. A gentle elevated terrain.',attrs:['warm','damp','high'],tiles:[]},
+  ocean:        {kind:'terrain',desc:'Warm, wet, deep. Deep open water.',attrs:['warm','wet','deep'],tiles:[]},
+  wetlands:     {kind:'terrain',desc:'Warm, wet, flat. A temperate marshland.',attrs:['warm','wet','flat'],tiles:[]},
+  rapids:       {kind:'terrain',desc:'Warm, wet, high. Fast-moving mountain water.',attrs:['warm','wet','high'],tiles:[]},
+  fissure:      {kind:'terrain',desc:'Hot, dry, deep. A geothermal crack in dry ground.',attrs:['hot','dry','deep'],tiles:[]},
+  desert:       {kind:'terrain',desc:'Hot, dry, flat. A hot arid sandy flat.',attrs:['hot','dry','flat'],tiles:[]},
+  mesa:         {kind:'terrain',desc:'Hot, dry, high. A flat-topped arid highland.',attrs:['hot','dry','high'],tiles:[]},
+  'lava tube':  {kind:'terrain',desc:'Hot, damp, deep. A tunnel formed by lava.',attrs:['hot','damp','deep'],tiles:[]},
+  mudflats:     {kind:'terrain',desc:'Hot, damp, flat. Hot flat earth, mineral-rich.',attrs:['hot','damp','flat'],tiles:[]},
+  volcano:      {kind:'terrain',desc:'Hot, damp, high. An active volcanic mountain.',attrs:['hot','damp','high'],tiles:[]},
+  vent:         {kind:'terrain',desc:'Hot, wet, deep. A hydrothermal vent.',attrs:['hot','wet','deep'],tiles:[]},
+  swamp:        {kind:'terrain',desc:'Hot, wet, flat. A hot stagnant wetland.',attrs:['hot','wet','flat'],tiles:[]},
+  geyser:       {kind:'terrain',desc:'Hot, wet, high. A pressurised geothermal vent.',attrs:['hot','wet','high'],tiles:[]},
+};
+
+// ── Creatures ─────────────────────────────────────────────────────────────────
+const CREATURES={
+  corvid:{
+    kingdom:'fauna',
+    name:'Ridgeback Corvid', art:'🦅', artLabel:'close-up · beak & eye',
+    hexShape:[[-1,0],[0,0],[1,-1]],
+    icons:[
+      {emoji:'🥩', tip:'Carnivore'},
+      {emoji:'🗡', tip:'Predator'},
+      {emoji:'🪶', tip:'Bird'},
+    ],
+    specialist:'adaptable', cost:7,
+    combat: true,
+    stats:{speed:'1.2s', o2cost:-1, damageMin:12, damageMax:16, accuracy:'82%'},
+    needs:    [],
+    prefers:  [{label:'high',type:'attribute'},{label:'dry',type:'attribute'}],
+    avoids:   [{label:'wet',type:'attribute'},{label:'deep',type:'attribute'}],
+    idealTiles:[{label:'crag',type:'terrain'},{label:'badlands',type:'terrain'}],
+    abilities:[
+      {name:'Dive Strike',desc:'First attack each round ignores 4 armour if the target is on a lower elevation tile.'},
+      {name:'Thermal Ride',desc:'Movement costs 0 O₂ if the destination tile is volcanic or dry.'},
+    ],
+  },
+  orca:{
+    kingdom:'fauna',
+    name:'Pacific Orca', art:'🐋', artLabel:'close-up · dorsal fin',
+    hexShape:[[1,0],[0,0],[-1,1]],
+    icons:[
+      {emoji:'🥩', tip:'Carnivore'},
+      {emoji:'🗡', tip:'Predator'},
+      {emoji:'🐟', tip:'Cetacean'},
+    ],
+    specialist:'adaptable', cost:14,
+    combat: true,
+    stats:{speed:'2.8s', o2cost:-2, damageMin:18, damageMax:26, accuracy:'88%'},
+    needs:    [{label:'saline',type:'meta-group'}],
+    prefers:  [{label:'deep',type:'attribute'}],
+    avoids:   [],
+    idealTiles:[{label:'ocean',type:'terrain'},{label:'ice shelf',type:'terrain'}],
+    abilities:[
+      {name:'Pack Drive',desc:'If two or more allies occupy adjacent tiles, this creature\'s damage increases by 6.'},
+      {name:'Echolocation',desc:'Ignores accuracy penalties from terrain effects. Attack range extended by 1 tile.'},
+    ],
+  },
+  hyena:{
+    kingdom:'fauna',
+    name:'Spotted Hyena', art:'🦴', artLabel:'close-up · jaw & teeth',
+    hexShape:[[0,0]],
+    icons:[
+      {emoji:'🥩', tip:'Carnivore'},
+      {emoji:'🗡', tip:'Predator'},
+      {emoji:'🐾', tip:'Mammal'},
+    ],
+    specialist:'adaptable', cost:6,
+    combat: true,
+    stats:{speed:'1.4s', o2cost:-1, damageMin:10, damageMax:14, accuracy:'78%'},
+    needs:    [{label:'terrestrial',type:'meta-group'}],
+    prefers:  [{label:'hot',type:'attribute'},{label:'dry',type:'attribute'}],
+    avoids:   [{label:'cold',type:'attribute'},{label:'deep',type:'attribute'},{label:'wet',type:'attribute'}],
+    idealTiles:[{label:'desert',type:'terrain'},{label:'hardpan',type:'terrain'}],
+    abilities:[
+      {name:'Scavenge',desc:'When an adjacent creature dies, this creature restores 8 HP immediately.'},
+      {name:'Cackle',desc:'On activation, all enemies within 2 tiles lose 10% accuracy until end of round.'},
+    ],
+  },
+  wolf:{
+    kingdom:'fauna',
+    name:'Grey Wolf', art:'🐺', artLabel:'close-up · muzzle & eyes',
+    hexShape:[[0,0]],
+    icons:[
+      {emoji:'🥩', tip:'Carnivore'},
+      {emoji:'🗡', tip:'Predator'},
+      {emoji:'🐾', tip:'Mammal'},
+    ],
+    specialist:'adaptable', cost:8,
+    combat: true,
+    stats:{speed:'1.3s', o2cost:-1, damageMin:11, damageMax:15, accuracy:'80%'},
+    needs:    [{label:'terrestrial',type:'meta-group'}],
+    prefers:  [{label:'cold',type:'attribute'},{label:'high',type:'attribute'}],
+    avoids:   [{label:'hot',type:'attribute'},{label:'wet',type:'attribute'}],
+    idealTiles:[{label:'mountain',type:'terrain'},{label:'permafrost',type:'terrain'}],
+    abilities:[
+      {name:'Pack Tactics',desc:'Each additional ally adjacent to the target adds 3 damage to this creature\'s attacks.'},
+      {name:'Howl',desc:'Once per round, grant all allied fauna within 3 tiles +10% accuracy until end of round.'},
+    ],
+  },
+  ironwood:{
+    kingdom:'flora',
+    name:'Canopy Ironwood', art:'🌳', artLabel:'close-up · upper canopy',
+    hexShape:[[0,0],[1,0],[0,1]],
+    icons:[
+      {emoji:'☀️', tip:'Producer'},
+      {emoji:'🛡', tip:'Warden'},
+      {emoji:'🌲', tip:'Tree'},
+    ],
+    specialist:'specialist', cost:12,
+    combat: false,
+    stats:{speed:'4.0s', o2cost:'+3', damageMin:null, damageMax:null, accuracy:null},
+    needs:    [{label:'high',type:'attribute'}],
+    prefers:  [],
+    avoids:   [{label:'dry',type:'attribute'},{label:'volcanic',type:'meta-group'}],
+    idealTiles:[{label:'mountain',type:'terrain'},{label:'hill',type:'terrain'}],
+    abilities:[
+      {name:'O₂ Well',desc:'Generates +2 O₂ per round distributed to all adjacent allies.'},
+    ],
+  },
+  veilcap:{
+    kingdom:'funga',
+    name:'Pale Veilcap', art:'🍄', artLabel:'close-up · spore gills',
+    hexShape:[[0,0]],
+    icons:[
+      {emoji:'💀', tip:'Detritivore'},
+      {emoji:'🛡', tip:'Warden'},
+    ],
+    specialist:'generalist', cost:4,
+    combat: false,
+    stats:{speed:'3.1s', o2cost:0, damageMin:null, damageMax:null, accuracy:null},
+    needs:    [{label:'terrestrial',type:'meta-group'}],
+    prefers:  [{label:'cavern',type:'meta-group'},{label:'standing water',type:'meta-group'}],
+    avoids:   [{label:'dry',type:'attribute'}],
+    idealTiles:[{label:'cave',type:'terrain'},{label:'lava tube',type:'terrain'}],
+    abilities:[
+      {name:'Decompose',desc:'When an adjacent creature dies, restore 6 O₂ to your pool immediately.'},
+      {name:'Spore Cloud',desc:'On activation, reduces accuracy of all adjacent carnivores by 15% for 2 rounds.'},
+    ],
+  },
+};
+
+// ── Art toggle state ──────────────────────────────────────────────────────────
+const artState={corvid:true, orca:true, hyena:true, wolf:true, ironwood:true, veilcap:true};
+
+function toggleArt(key){
+  artState[key]=!artState[key];
+  const wrap=document.getElementById(`art-wrap-${key}`);
+  if(wrap){
+    wrap.classList.toggle('art-open', artState[key]);
+    wrap.classList.toggle('art-closed', !artState[key]);
+  }
+}
+
+// ── Chip HTML ─────────────────────────────────────────────────────────────────
+function chipHTML(items,cls){
+  if(!items||!items.length) return '';
+  return items.map(item=>{
+    const dot=(item.type==='meta-group')?'<span class="chip-dot"></span>':'';
+    return `<button class="chip ${cls}" onclick="showPop(event,'${item.label}')">${dot}${item.label}</button>`;
+  }).join('');
+}
+
+// ── Render card ───────────────────────────────────────────────────────────────
+function renderCard(key){
+  const c=CREATURES[key];
+  const sd=SPECIALIST_DEFS[c.specialist];
+
+  // Icons row
+  const iconsHtml=c.icons.map(ic=>
+    `<div class="icon-pill" onclick="event.stopPropagation()">
+      ${ic.emoji}<span class="tip">${ic.tip}</span>
+    </div>`
+  ).join('');
+
+  // Stats — combat shows all 4, non-combat shows just 2
+  let statsHtml='';
+  if(c.combat){
+    const dmg=`${c.stats.damageMin}–${c.stats.damageMax}`;
+    statsHtml=`
+      <div class="row-stats combat">
+        <div class="stat-cell"><span class="stat-cell-label">Activation</span><span class="stat-cell-val">${c.stats.speed}</span></div>
+        <div class="stat-cell"><span class="stat-cell-label">O2</span><span class="stat-cell-val">${c.stats.o2cost!=null?c.stats.o2cost:''}</span></div>
+        <div class="stat-cell"><span class="stat-cell-label">Damage</span><span class="stat-cell-val">${dmg}</span></div>
+        <div class="stat-cell"><span class="stat-cell-label">Accuracy</span><span class="stat-cell-val">${c.stats.accuracy}</span></div>
+      </div>`;
+  } else {
+    statsHtml=`
+      <div class="row-stats noncombat">
+        <div class="stat-cell" style="border-bottom:none"><span class="stat-cell-label">Activation</span><span class="stat-cell-val">${c.stats.speed}</span></div>
+        <div class="stat-cell" style="border-bottom:none"><span class="stat-cell-label">O2</span><span class="stat-cell-val">${c.stats.o2cost!=null?c.stats.o2cost:''}</span></div>
+      </div>`;
+  }
+
+  // Prefs
+  let prefRows='';
+  const addRow=(label,items,cls)=>{
+    if(!items||!items.length) return;
+    prefRows+=`<div class="pref-label">${label}</div><div class="pref-row">${chipHTML(items,cls)}</div>`;
+  };
+  addRow('Needs',   c.needs,      'needs');
+  addRow('Prefers', c.prefers,    'prefers');
+  addRow('Ideal',   c.idealTiles, 'ideal');
+  addRow('Avoids',  c.avoids,     'avoids');
+
+  // Abilities
+  const abilHtml=c.abilities.map((a,i)=>`
+    <div class="ability-row" onclick="toggleAbility('${key}',${i})">
+      <span class="ability-name">${a.name}</span>
+      <span class="ability-arrow" id="arrow-${key}-${i}">▼</span>
+    </div>
+    <div class="ability-desc-row" id="desc-${key}-${i}">${a.desc}</div>
+  `).join('');
+
+  const isOpen=artState[key];
+
+  document.getElementById('card').className=`card ${c.kingdom}`;
+  document.getElementById('card').innerHTML=`
+    <div class="row-header">
+      ${dotClusterSVG(c.hexShape)}
+      <span class="creature-name">${c.name}</span>
+      <div class="cost-badge"><span class="flux-symbol">ʄ</span>${c.cost}</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="row-icons">${iconsHtml}</div>
+
+    <div class="divider"></div>
+
+    <div class="row-art-wrap ${isOpen?'art-open':'art-closed'}" id="art-wrap-${key}">
+      <div class="row-art">
+        <span>${c.art}</span>
+        <div class="art-caption">${c.artLabel}</div>
+      </div>
+      <div class="art-peek-fade"></div>
+      <button class="art-toggle" onclick="toggleArt('${key}')">▲</button>
+    </div>
+
+    <div class="divider"></div>
+
+    ${statsHtml}
+
+    <div class="divider"></div>
+
+    <div class="row-eco-header">
+      <button class="spec-btn" onclick="showSpecPop(event,'${c.specialist}')">${sd.label}</button>
+      <button class="matrix-icon-btn" onclick="openMatrix('${key}')" title="Terrain matrix">${gridIconSVG()}</button>
+    </div>
+
+    <div class="row-prefs">${prefRows}</div>
+
+    <div class="divider"></div>
+
+    ${abilHtml}
+  `;
+}
+
+// ── Ability toggle ────────────────────────────────────────────────────────────
+function toggleAbility(key,i){
+  const desc=document.getElementById(`desc-${key}-${i}`);
+  const arrow=document.getElementById(`arrow-${key}-${i}`);
+  if(!desc||!arrow) return;
+  const open=desc.classList.toggle('open');
+  arrow.classList.toggle('open',open);
+}
+
+// ── Matrix ────────────────────────────────────────────────────────────────────
+function renderMatrix(key){
+  const c=CREATURES[key];
+  const fitness=computeFitness(c);
+  const tempEmoji={'-1':'❄️','0':'☁️','1':'🔥'};
+  const humidEmoji={'-1':'🌵','0':'·','1':'💧'};
+  const elevLabels={1:'High',0:'Flat','-1':'Deep'};
+  let html='';
+  [1,0,-1].forEach(e=>{
+    html+=`<div class="elev-label">${elevLabels[e]}</div><table class="cube-table"><tr><td></td>`;
+    [-1,0,1].forEach(t=>{html+=`<td class="cube-header">${tempEmoji[t]}</td>`;});
+    html+=`</tr>`;
+    [-1,0,1].forEach(h=>{
+      html+=`<tr><td class="cube-side-header">${humidEmoji[h]}</td>`;
+      [-1,0,1].forEach(t=>{
+        const k=`${t},${h},${e}`;
+        const name=TERRAIN_GRID[k]||'?';
+        const fit=fitness[name]||'none';
+        html+=`<td><div class="matrix-cell fit-${fit}" onclick="showMatrixPop(event,'${name}')"></div></td>`;
+      });
+      html+=`</tr>`;
+    });
+    html+=`</table>`;
+  });
+  document.getElementById('matrixCube').innerHTML=html;
+}
+
+// ── Popovers ──────────────────────────────────────────────────────────────────
+function showSpecPop(e,key){
+  e.stopPropagation();
+  const sd=SPECIALIST_DEFS[key];
+  document.getElementById('popKind').textContent='ecological range';
+  document.getElementById('popName').textContent=sd.label;
+  document.getElementById('popDesc').textContent=sd.desc;
+  document.getElementById('popAttrs').innerHTML='';
+  document.getElementById('popTilesLabel').textContent='';
+  document.getElementById('popTiles').innerHTML='';
+  positionPop(e); document.getElementById('popover').classList.add('visible');
+}
+
+function showPop(e,key){
+  e.stopPropagation();
+  const def=TERRAIN_DEFS[key];
+  if(!def) return;
+  populatePop(def,key); positionPop(e);
+  document.getElementById('popover').classList.add('visible');
+}
+
+function showMatrixPop(e,name){
+  e.stopPropagation();
+  const def=TERRAIN_DEFS[name];
+  if(!def) return;
+  populatePop(def,name); positionPop(e);
+  document.getElementById('popover').classList.add('visible');
+}
+
+function showPopByName(name){
+  const def=TERRAIN_DEFS[name];
+  if(!def) return;
+  populatePop(def,name);
+  document.getElementById('popover').classList.add('visible');
+}
+
+function populatePop(def,key){
+  document.getElementById('popKind').textContent=def.kind;
+  document.getElementById('popName').textContent=key;
+  document.getElementById('popDesc').textContent=def.desc;
+  document.getElementById('popAttrs').innerHTML=(def.attrs||[]).map(a=>`<span class="pop-attr">${a}</span>`).join('');
+  const tiles=def.tiles||[];
+  if(tiles.length){
+    document.getElementById('popTilesLabel').textContent=def.kind==='meta-group'?'Includes':'Belongs to';
+    document.getElementById('popTiles').innerHTML=tiles.map(t=>`<button class="pop-tile" onclick="showPopByName('${t}')">${t}</button>`).join('');
+  } else {
+    document.getElementById('popTilesLabel').textContent='';
+    document.getElementById('popTiles').innerHTML='';
+  }
+}
+
+function positionPop(e){
+  const pop=document.getElementById('popover');
+  pop.classList.add('visible');
+  const r=e.target.getBoundingClientRect();
+  let left=r.left, top=r.bottom+6;
+  if(left+230>window.innerWidth-8) left=window.innerWidth-238;
+  if(top+240>window.innerHeight-8) top=r.top-246;
+  pop.style.left=left+'px'; pop.style.top=top+'px';
+}
+
+document.addEventListener('click',()=>document.getElementById('popover').classList.remove('visible'));
+
+function switchCard(btn,key){
+  document.querySelectorAll('.ctrl-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCard(key);
+  document.getElementById('popover').classList.remove('visible');
+}
+
+function openMatrix(key){
+  renderMatrix(key);
+  const cardBg={fauna:'#7a3500',flora:'#1e4a08',funga:'#3a1260'};
+  const kingdom=CREATURES[key].kingdom;
+  const hex=cardBg[kingdom]||'#1a1a1a';
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  const dr=Math.round(r*0.55),dg=Math.round(g*0.55),db=Math.round(b*0.55);
+  document.getElementById('matrixBox').style.background='rgb('+dr+','+dg+','+db+')';
+  document.getElementById('matrixOverlay').classList.add('open');
+}
+function closeMatrix(){ document.getElementById('matrixOverlay').classList.remove('open'); document.getElementById('popover').classList.remove('visible'); }
+function handleOverlayClick(e){ if(e.target===document.getElementById('matrixOverlay')) closeMatrix(); }
+
+renderCard('corvid');
+</script>
+</body>
+</html>
