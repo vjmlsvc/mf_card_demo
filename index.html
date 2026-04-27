@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Creature Card — v13</title>
+<title>Creature Card — v14</title>
 <style>
   :root {
     --font-sans: system-ui, -apple-system, sans-serif;
@@ -97,6 +97,15 @@
     pointer-events: none;
   }
   .art-closed .art-peek-fade { display: block; }
+  /* shift art to show vertical center when collapsed */
+  .art-closed .row-art {
+    transform: translateY(calc((var(--art-peek) - var(--art-full)) / 2));
+    transition: transform 0.25s ease;
+  }
+  .art-open .row-art {
+    transform: translateY(0);
+    transition: transform 0.25s ease;
+  }
   /* collapse toggle button */
   .art-toggle {
     position: absolute; top: 6px; right: 6px;
@@ -180,10 +189,11 @@
   .matrix-cell.fit-ideal { background: #2d8a3e; }
   .matrix-cell.fit-good  { background: #9a7010; }
   .matrix-cell.fit-bad   { background: #8a3a10; }
-  .matrix-cell.fit-none  { background: rgba(120,120,120,0.15); border-color: rgba(180,180,180,0.1); }
-  .matrix-legend { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
-  .leg-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--color-text-secondary); }
-  .leg-swatch { width: 22px; height: 16px; border-radius: 3px; flex-shrink: 0; }
+  .matrix-cell.fit-unfit { background: rgba(0,0,0,0.35); border-color: rgba(255,255,255,0.08); }
+  .matrix-cell.fit-none  { background: rgba(0,0,0,0.35); border-color: rgba(255,255,255,0.08); }
+  .matrix-legend { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .leg-item { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: var(--color-text-secondary); letter-spacing: 0.3px; }
+  .leg-swatch { width: 22px; height: 12px; border-radius: 3px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -199,15 +209,14 @@
 </div>
 
 <div class="matrix-overlay" id="matrixOverlay" onclick="handleOverlayClick(event)">
-  <div class="matrix-box">
+  <div class="matrix-box" id="matrixBox">
     <button class="close-btn" onclick="closeMatrix()">close ×</button>
-    <div class="matrix-box-title" id="matrixTitle"></div>
     <div id="matrixCube"></div>
     <div class="matrix-legend">
       <div class="leg-item"><div class="leg-swatch" style="background:#2d8a3e"></div>ideal</div>
       <div class="leg-item"><div class="leg-swatch" style="background:#9a7010"></div>good</div>
       <div class="leg-item"><div class="leg-swatch" style="background:#8a3a10"></div>bad</div>
-      <div class="leg-item"><div class="leg-swatch" style="background:rgba(120,120,120,0.15);border:0.5px solid rgba(180,180,180,0.2)"></div>unfit</div>
+      <div class="leg-item"><div class="leg-swatch" style="background:rgba(0,0,0,0.35);border:0.5px solid rgba(255,255,255,0.08)"></div>unfit</div>
     </div>
   </div>
 </div>
@@ -272,7 +281,7 @@ const GROUP_MEMBERS={
   freshwater:   ['tarn','glacier','wetlands','rapids','swamp'],
   saltwater:    ['ice shelf','ocean','vent'],
   volcanic:     ['fissure','lava tube','vent','volcano','geyser'],
-  subterranean: ['ice cave','cave','lava tube','fissure','gorge'],
+  subterranean: ['ice cave','cave','lava tube'],
   cold:  ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===-1),
   warm:  ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===0),
   hot:   ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===1),
@@ -331,9 +340,9 @@ function computeFitness(c){
 
 // ── Defs ──────────────────────────────────────────────────────────────────────
 const SPECIALIST_DEFS={
-  generalist:{label:'Generalist',desc:'Comfortable almost anywhere, with exceptions. Undefined terrain is bad but survivable — only explicit avoids cause real trouble. Like a raven or rat.'},
-  adaptable: {label:'Adaptable', desc:'Shaped by its preferences. Thrives where things fit, struggles where they don\'t, fails where things actively go wrong. Like a wolf.'},
-  specialist:{label:'Specialist',desc:'Only fits where all its needs are met. Unfit almost everywhere else. Powerful in its niche. Like an orca.'},
+  generalist:{label:'Generalist',desc:'Must meet at least one need (if any). Otherwise fits any terrain unless explicitly avoided. Avoided terrain is bad; double-avoided terrain is unfit. Preferred terrain is good; ideal terrain is ideal.'},
+  adaptable: {label:'Adaptable', desc:'Must meet at least one need (if any). Prefers-only terrain is good. Avoids-only terrain is unfit. Both prefers and avoids is bad. Neither is bad. Ideal terrain upgrades good to ideal.'},
+  specialist:{label:'Specialist',desc:'Must meet every need. Failing any need means unfit. When all needs are met, avoided terrain is still unfit. Ideal terrain upgrades good to ideal.'},
 };
 
 const TERRAIN_DEFS={
@@ -344,7 +353,7 @@ const TERRAIN_DEFS={
   freshwater:   {kind:'meta-group',desc:'Non-saline water bodies.',attrs:['wet','non-salt'],tiles:['tarn','glacier','wetlands','rapids','swamp']},
   saltwater:    {kind:'meta-group',desc:'Saline water.',attrs:['wet','saline'],tiles:['ice shelf','ocean','vent']},
   volcanic:     {kind:'meta-group',desc:'Geothermally active terrain.',attrs:['hot','geothermal'],tiles:['fissure','lava tube','vent','volcano','geyser']},
-  subterranean: {kind:'meta-group',desc:'Below-ground terrain. Low light, enclosed.',attrs:['deep'],tiles:['ice cave','cave','lava tube','fissure','gorge']},
+  subterranean: {kind:'meta-group',desc:'Damp, deep terrain. Enclosed, low-light cavities.',attrs:['damp','deep'],tiles:['ice cave','cave','lava tube']},
   cold:  {kind:'attribute',desc:'Cold temperature.',attrs:['-1 temp'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===-1)},
   warm:  {kind:'attribute',desc:'Temperate conditions.',attrs:['0 temp'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===0)},
   hot:   {kind:'attribute',desc:'Elevated thermal conditions.',attrs:['+1 temp'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===1)},
@@ -397,7 +406,7 @@ const CREATURES={
     ],
     specialist:'adaptable', cost:7,
     combat: true,
-    stats:{speed:'1.2s', o2cost:3, damageMin:12, damageMax:16, accuracy:'82%'},
+    stats:{speed:'1.2s', o2cost:-1, damageMin:12, damageMax:16, accuracy:'82%'},
     needs:    [],
     prefers:  [{label:'high',type:'attribute'}],
     avoids:   [{label:'wet',type:'attribute'},{label:'deep',type:'attribute'}],
@@ -418,7 +427,7 @@ const CREATURES={
     ],
     specialist:'specialist', cost:12,
     combat: false,
-    stats:{speed:'4.0s', o2cost:0, damageMin:null, damageMax:null, accuracy:null},
+    stats:{speed:'4.0s', o2cost:'+3', damageMin:null, damageMax:null, accuracy:null},
     needs:    [{label:'high',type:'attribute'}],
     prefers:  [{label:'alpine',type:'meta-group'}],
     avoids:   [{label:'dry',type:'attribute'},{label:'volcanic',type:'meta-group'}],
@@ -437,9 +446,9 @@ const CREATURES={
     ],
     specialist:'generalist', cost:4,
     combat: false,
-    stats:{speed:'3.1s', o2cost:1, damageMin:null, damageMax:null, accuracy:null},
+    stats:{speed:'3.1s', o2cost:0, damageMin:null, damageMax:null, accuracy:null},
     needs:    [{label:'terrestrial',type:'meta-group'}],
-    prefers:  [{label:'subterranean',type:'meta-group'},{label:'aquatic',type:'meta-group'}],
+    prefers:  [{label:'subterranean',type:'meta-group'},{label:'wet',type:'attribute'}],
     avoids:   [{label:'dry',type:'attribute'}],
     idealTiles:[{label:'cave',type:'terrain'},{label:'lava tube',type:'terrain'}],
     abilities:[
@@ -489,7 +498,7 @@ function renderCard(key){
     statsHtml=`
       <div class="row-stats combat">
         <div class="stat-cell"><span class="stat-cell-label">Activation</span><span class="stat-cell-val">${c.stats.speed}</span></div>
-        <div class="stat-cell"><span class="stat-cell-label">O₂ cost</span><span class="stat-cell-val">${c.stats.o2cost}</span></div>
+        <div class="stat-cell"><span class="stat-cell-label">O2</span><span class="stat-cell-val">${c.stats.o2cost!=null?c.stats.o2cost:''}</span></div>
         <div class="stat-cell"><span class="stat-cell-label">Damage</span><span class="stat-cell-val">${dmg}</span></div>
         <div class="stat-cell"><span class="stat-cell-label">Accuracy</span><span class="stat-cell-val">${c.stats.accuracy}</span></div>
       </div>`;
@@ -497,7 +506,7 @@ function renderCard(key){
     statsHtml=`
       <div class="row-stats noncombat">
         <div class="stat-cell" style="border-bottom:none"><span class="stat-cell-label">Activation</span><span class="stat-cell-val">${c.stats.speed}</span></div>
-        <div class="stat-cell" style="border-bottom:none"><span class="stat-cell-label">O₂ cost</span><span class="stat-cell-val">${c.stats.o2cost}</span></div>
+        <div class="stat-cell" style="border-bottom:none"><span class="stat-cell-label">O2</span><span class="stat-cell-val">${c.stats.o2cost!=null?c.stats.o2cost:''}</span></div>
       </div>`;
   }
 
@@ -578,7 +587,6 @@ function toggleAbility(key,i){
 function renderMatrix(key){
   const c=CREATURES[key];
   const fitness=computeFitness(c);
-  document.getElementById('matrixTitle').textContent=c.name+' · terrain matrix';
   const tempEmoji={'-1':'❄️','0':'☁️','1':'🔥'};
   const humidEmoji={'-1':'🌵','0':'·','1':'💧'};
   const elevLabels={1:'High',0:'Flat','-1':'Deep'};
@@ -672,7 +680,15 @@ function switchCard(btn,key){
   document.getElementById('popover').classList.remove('visible');
 }
 
-function openMatrix(key){ renderMatrix(key); document.getElementById('matrixOverlay').classList.add('open'); }
+function openMatrix(key){
+  renderMatrix(key);
+  const cardBg={fauna:'#7a3500',flora:'#1e4a08',funga:'#3a1260'};
+  const hex=cardBg[key]||'#1a1a1a';
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  const dr=Math.round(r*0.55),dg=Math.round(g*0.55),db=Math.round(b*0.55);
+  document.getElementById('matrixBox').style.background='rgb('+dr+','+dg+','+db+')';
+  document.getElementById('matrixOverlay').classList.add('open');
+}
 function closeMatrix(){ document.getElementById('matrixOverlay').classList.remove('open'); document.getElementById('popover').classList.remove('visible'); }
 function handleOverlayClick(e){ if(e.target===document.getElementById('matrixOverlay')) closeMatrix(); }
 
