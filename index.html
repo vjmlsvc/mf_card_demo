@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Creature Card — v14</title>
+<title>Creature Card — v15</title>
 <style>
   :root {
     --font-sans: system-ui, -apple-system, sans-serif;
@@ -275,13 +275,23 @@ const TERRESTRIAL=ALL_TERRAINS.filter(n=>!(TERRAIN_COORDS[n].h===1&&TERRAIN_COOR
 const OCEANIC=ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].h===1&&TERRAIN_COORDS[n].e===-1);
 
 const GROUP_MEMBERS={
-  alpine:       ['crag','mountain','glacier','badlands','hill','rapids'],
-  aquatic:      ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].h===1),
-  terrestrial:  TERRESTRIAL, oceanic: OCEANIC,
-  freshwater:   ['tarn','glacier','wetlands','rapids','swamp'],
-  saltwater:    ['ice shelf','ocean','vent'],
-  volcanic:     ['fissure','lava tube','vent','volcano','geyser'],
-  subterranean: ['ice cave','cave','lava tube'],
+  // ── Water meta-groups ──
+  river:          ['rapids','wetlands'],
+  oceanic:        ['ice shelf','ocean','vent'],
+  'flowing water':['rapids','wetlands','ice shelf','ocean','vent'],
+  'standing water':['tarn','wetlands','swamp'],
+  freshwater:     ['tarn','wetlands','rapids'],
+  saline:         ['ice shelf','ocean','vent','wetlands'],
+  // ── Climate / landscape meta-groups ──
+  arctic:         ['ice shelf','tarn','glacier'],
+  glacial:        ['crag','cirque','glacier','tarn'],
+  volcanic:       ['fissure','lava tube','vent','volcano','geyser'],
+  // ── Subterranean meta-groups ──
+  cavern:         ['ice cave','cave','lava tube'],
+  rift:           ['fissure','gorge'],
+  // ── Broad ──
+  terrestrial:    TERRESTRIAL,
+  // ── Attributes ──
   cold:  ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===-1),
   warm:  ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===0),
   hot:   ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===1),
@@ -291,7 +301,6 @@ const GROUP_MEMBERS={
   deep:  ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].e===-1),
   flat:  ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].e===0),
   high:  ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].e===1),
-  'high elevation': ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].e===1),
 };
 
 function expandChip(chip){
@@ -346,14 +355,22 @@ const SPECIALIST_DEFS={
 };
 
 const TERRAIN_DEFS={
-  alpine:       {kind:'meta-group',desc:'High elevation, non-hot terrain. Exposed, rocky, cold to temperate.',attrs:['high','non-hot'],tiles:['crag','mountain','glacier','badlands','hill','rapids']},
-  aquatic:      {kind:'meta-group',desc:'Any terrain dominated by standing or flowing water.',attrs:['wet'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].h===1)},
-  terrestrial:  {kind:'meta-group',desc:'Land-based terrain. Excludes deep+wet tiles (ice shelf, ocean, vent).',attrs:['not (wet+deep)'],tiles:TERRESTRIAL},
-  oceanic:      {kind:'meta-group',desc:'Deep open water. Both wet and deep.',attrs:['wet','deep'],tiles:OCEANIC},
-  freshwater:   {kind:'meta-group',desc:'Non-saline water bodies.',attrs:['wet','non-salt'],tiles:['tarn','glacier','wetlands','rapids','swamp']},
-  saltwater:    {kind:'meta-group',desc:'Saline water.',attrs:['wet','saline'],tiles:['ice shelf','ocean','vent']},
-  volcanic:     {kind:'meta-group',desc:'Geothermally active terrain.',attrs:['hot','geothermal'],tiles:['fissure','lava tube','vent','volcano','geyser']},
-  subterranean: {kind:'meta-group',desc:'Damp, deep terrain. Enclosed, low-light cavities.',attrs:['damp','deep'],tiles:['ice cave','cave','lava tube']},
+  // ── Water meta-groups ──
+  river:           {kind:'meta-group',desc:'Surface flowing or slow water. The full river continuum from mountain stream to delta.',attrs:['wet','not deep'],tiles:['rapids','wetlands']},
+  oceanic:         {kind:'meta-group',desc:'Deep salt water. Open ocean, polar shelves, and hydrothermal vents.',attrs:['wet','deep','saline'],tiles:['ice shelf','ocean','vent']},
+  'flowing water': {kind:'meta-group',desc:'The connected global water system. River and oceanic combined.',attrs:['wet','connected'],tiles:['rapids','wetlands','ice shelf','ocean','vent']},
+  'standing water':{kind:'meta-group',desc:'Still or slow surface water. Flat wet terrain only.',attrs:['wet','flat'],tiles:['tarn','wetlands','swamp']},
+  freshwater:      {kind:'meta-group',desc:'Non-saline surface water. Lakes, rivers, and wetlands.',attrs:['wet','non-salt'],tiles:['tarn','wetlands','rapids']},
+  saline:          {kind:'meta-group',desc:'Salt-tolerant water. Oceanic plus estuarine and coastal wetlands.',attrs:['wet','saline'],tiles:['ice shelf','ocean','vent','wetlands']},
+  // ── Climate / landscape meta-groups ──
+  arctic:          {kind:'meta-group',desc:'Harsh cold wet terrain. Ice-dominated environments.',attrs:['cold','wet'],tiles:['ice shelf','tarn','glacier']},
+  glacial:         {kind:'meta-group',desc:'Glacially formed terrain. Ice, carved rock, and meltwater.',attrs:['cold'],tiles:['crag','cirque','glacier','tarn']},
+  volcanic:        {kind:'meta-group',desc:'Geothermally active terrain. Hot and non-flat.',attrs:['hot','non-flat'],tiles:['fissure','lava tube','vent','volcano','geyser']},
+  // ── Subterranean meta-groups ──
+  cavern:          {kind:'meta-group',desc:'Damp enclosed underground cavities. Low light, stable humidity.',attrs:['damp','deep'],tiles:['ice cave','cave','lava tube']},
+  rift:            {kind:'meta-group',desc:'Deep dry cuts in terrain. Open to sky but sunken.',attrs:['dry','deep'],tiles:['fissure','gorge']},
+  // ── Broad ──
+  terrestrial:     {kind:'meta-group',desc:'Land-based terrain. Excludes deep+wet tiles.',attrs:['not (wet+deep)'],tiles:TERRESTRIAL},
   cold:  {kind:'attribute',desc:'Cold temperature.',attrs:['-1 temp'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===-1)},
   warm:  {kind:'attribute',desc:'Temperate conditions.',attrs:['0 temp'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===0)},
   hot:   {kind:'attribute',desc:'Elevated thermal conditions.',attrs:['+1 temp'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].t===1)},
@@ -363,7 +380,6 @@ const TERRAIN_DEFS={
   high:  {kind:'attribute',desc:'Elevated terrain.',attrs:['+1 elevation'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].e===1)},
   flat:  {kind:'attribute',desc:'Flat terrain at mid elevation.',attrs:['0 elevation'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].e===0)},
   deep:  {kind:'attribute',desc:'Below-ground or deep underwater.',attrs:['-1 elevation'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].e===-1)},
-  'high elevation':{kind:'attribute',desc:'Elevated terrain.',attrs:['+1 elevation'],tiles:ALL_TERRAINS.filter(n=>TERRAIN_COORDS[n].e===1)},
   cirque:       {kind:'terrain',desc:'Cold, dry, deep. Glacially carved bowl.',attrs:['cold','dry','deep'],tiles:[]},
   'ice desert': {kind:'terrain',desc:'Cold, dry, flat. Cold arid flatland.',attrs:['cold','dry','flat'],tiles:[]},
   crag:         {kind:'terrain',desc:'Cold, dry, high. Wind-scoured rocky peak.',attrs:['cold','dry','high'],tiles:[]},
@@ -448,7 +464,7 @@ const CREATURES={
     combat: false,
     stats:{speed:'3.1s', o2cost:0, damageMin:null, damageMax:null, accuracy:null},
     needs:    [{label:'terrestrial',type:'meta-group'}],
-    prefers:  [{label:'subterranean',type:'meta-group'},{label:'wet',type:'attribute'}],
+    prefers:  [{label:'cavern',type:'meta-group'},{label:'wet',type:'attribute'}],
     avoids:   [{label:'dry',type:'attribute'}],
     idealTiles:[{label:'cave',type:'terrain'},{label:'lava tube',type:'terrain'}],
     abilities:[
