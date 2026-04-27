@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Creature Card — v15</title>
+<title>Creature Card — v18</title>
 <style>
   :root {
     --font-sans: system-ui, -apple-system, sans-serif;
@@ -32,10 +32,27 @@
     padding: 24px 16px; gap: 20px;
   }
 
-  .controls { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-  .ctrl-btn { font-size: 14px; padding: 10px 18px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-secondary); color: var(--color-text-primary); cursor: pointer; min-height: 44px; font-family: inherit; }
-  .ctrl-btn:hover { background: var(--color-background-tertiary); }
-  .ctrl-btn.active { background: var(--color-background-info); color: var(--color-text-info); border-color: var(--color-border-info); }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .ctrl-btn {
+    font-size: 13px; padding: 7px 13px; border-radius: var(--border-radius-md);
+    border: 1.5px solid transparent;
+    color: rgba(255,255,255,0.75); cursor: pointer;
+    min-height: 40px; font-family: inherit;
+    display: flex; align-items: center; gap: 6px;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .ctrl-btn .btn-emoji { font-size: 16px; line-height: 1; }
+  .ctrl-btn .btn-label { font-size: 12px; font-weight: 500; letter-spacing: 0.2px; }
+  /* kingdom tints */
+  .ctrl-btn.fauna { background: rgba(122,53,0,0.35); border-color: rgba(122,53,0,0.6); }
+  .ctrl-btn.fauna:hover { background: rgba(122,53,0,0.55); }
+  .ctrl-btn.fauna.active { background: #7a3500; border-color: #b05010; color: #fff; }
+  .ctrl-btn.flora { background: rgba(30,74,8,0.35); border-color: rgba(30,74,8,0.6); }
+  .ctrl-btn.flora:hover { background: rgba(30,74,8,0.55); }
+  .ctrl-btn.flora.active { background: #1e4a08; border-color: #3a8010; color: #fff; }
+  .ctrl-btn.funga { background: rgba(58,18,96,0.35); border-color: rgba(58,18,96,0.6); }
+  .ctrl-btn.funga:hover { background: rgba(58,18,96,0.55); }
+  .ctrl-btn.funga.active { background: #3a1260; border-color: #6a30a0; color: #fff; }
 
   /* ── Card shell ── */
   .card-wrap { position: relative; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 20px; }
@@ -199,9 +216,12 @@
 <body>
 
 <div class="controls">
-  <button class="ctrl-btn active" onclick="switchCard(this,'fauna')">Fauna · Corvid</button>
-  <button class="ctrl-btn" onclick="switchCard(this,'flora')">Flora · Ironwood</button>
-  <button class="ctrl-btn" onclick="switchCard(this,'funga')">Funga · Veilcap</button>
+  <button class="ctrl-btn fauna active" onclick="switchCard(this,'corvid')"><span class="btn-emoji">🦅</span><span class="btn-label">Corvid</span></button>
+  <button class="ctrl-btn fauna" onclick="switchCard(this,'orca')"><span class="btn-emoji">🐋</span><span class="btn-label">Orca</span></button>
+  <button class="ctrl-btn fauna" onclick="switchCard(this,'hyena')"><span class="btn-emoji">🦴</span><span class="btn-label">Hyena</span></button>
+  <button class="ctrl-btn fauna" onclick="switchCard(this,'wolf')"><span class="btn-emoji">🐺</span><span class="btn-label">Wolf</span></button>
+  <button class="ctrl-btn flora" onclick="switchCard(this,'ironwood')"><span class="btn-emoji">🌳</span><span class="btn-label">Ironwood</span></button>
+  <button class="ctrl-btn funga" onclick="switchCard(this,'veilcap')"><span class="btn-emoji">🍄</span><span class="btn-label">Veilcap</span></button>
 </div>
 
 <div class="card-wrap">
@@ -411,7 +431,7 @@ const TERRAIN_DEFS={
 
 // ── Creatures ─────────────────────────────────────────────────────────────────
 const CREATURES={
-  fauna:{
+  corvid:{
     kingdom:'fauna',
     name:'Ridgeback Corvid', art:'🦅', artLabel:'close-up · beak & eye',
     hexShape:[[-1,0],[0,0],[1,-1]],
@@ -424,7 +444,7 @@ const CREATURES={
     combat: true,
     stats:{speed:'1.2s', o2cost:-1, damageMin:12, damageMax:16, accuracy:'82%'},
     needs:    [],
-    prefers:  [{label:'high',type:'attribute'}],
+    prefers:  [{label:'high',type:'attribute'},{label:'dry',type:'attribute'}],
     avoids:   [{label:'wet',type:'attribute'},{label:'deep',type:'attribute'}],
     idealTiles:[{label:'crag',type:'terrain'},{label:'badlands',type:'terrain'}],
     abilities:[
@@ -432,7 +452,70 @@ const CREATURES={
       {name:'Thermal Ride',desc:'Movement costs 0 O₂ if the destination tile is volcanic or dry.'},
     ],
   },
-  flora:{
+  orca:{
+    kingdom:'fauna',
+    name:'Pacific Orca', art:'🐋', artLabel:'close-up · dorsal fin',
+    hexShape:[[1,0],[0,0],[-1,1]],
+    icons:[
+      {emoji:'🥩', tip:'Carnivore'},
+      {emoji:'🗡', tip:'Predator'},
+      {emoji:'🐟', tip:'Cetacean'},
+    ],
+    specialist:'adaptable', cost:14,
+    combat: true,
+    stats:{speed:'2.8s', o2cost:-2, damageMin:18, damageMax:26, accuracy:'88%'},
+    needs:    [{label:'saline',type:'meta-group'}],
+    prefers:  [{label:'deep',type:'attribute'}],
+    avoids:   [],
+    idealTiles:[{label:'ocean',type:'terrain'},{label:'ice shelf',type:'terrain'}],
+    abilities:[
+      {name:'Pack Drive',desc:'If two or more allies occupy adjacent tiles, this creature\'s damage increases by 6.'},
+      {name:'Echolocation',desc:'Ignores accuracy penalties from terrain effects. Attack range extended by 1 tile.'},
+    ],
+  },
+  hyena:{
+    kingdom:'fauna',
+    name:'Spotted Hyena', art:'🦴', artLabel:'close-up · jaw & teeth',
+    hexShape:[[0,0]],
+    icons:[
+      {emoji:'🥩', tip:'Carnivore'},
+      {emoji:'🗡', tip:'Predator'},
+      {emoji:'🐾', tip:'Mammal'},
+    ],
+    specialist:'adaptable', cost:6,
+    combat: true,
+    stats:{speed:'1.4s', o2cost:-1, damageMin:10, damageMax:14, accuracy:'78%'},
+    needs:    [{label:'terrestrial',type:'meta-group'}],
+    prefers:  [{label:'hot',type:'attribute'},{label:'dry',type:'attribute'}],
+    avoids:   [{label:'cold',type:'attribute'},{label:'deep',type:'attribute'},{label:'wet',type:'attribute'}],
+    idealTiles:[{label:'desert',type:'terrain'},{label:'hardpan',type:'terrain'}],
+    abilities:[
+      {name:'Scavenge',desc:'When an adjacent creature dies, this creature restores 8 HP immediately.'},
+      {name:'Cackle',desc:'On activation, all enemies within 2 tiles lose 10% accuracy until end of round.'},
+    ],
+  },
+  wolf:{
+    kingdom:'fauna',
+    name:'Grey Wolf', art:'🐺', artLabel:'close-up · muzzle & eyes',
+    hexShape:[[0,0]],
+    icons:[
+      {emoji:'🥩', tip:'Carnivore'},
+      {emoji:'🗡', tip:'Predator'},
+      {emoji:'🐾', tip:'Mammal'},
+    ],
+    specialist:'adaptable', cost:8,
+    combat: true,
+    stats:{speed:'1.3s', o2cost:-1, damageMin:11, damageMax:15, accuracy:'80%'},
+    needs:    [{label:'terrestrial',type:'meta-group'}],
+    prefers:  [{label:'cold',type:'attribute'},{label:'high',type:'attribute'}],
+    avoids:   [{label:'hot',type:'attribute'},{label:'wet',type:'attribute'}],
+    idealTiles:[{label:'mountain',type:'terrain'},{label:'permafrost',type:'terrain'}],
+    abilities:[
+      {name:'Pack Tactics',desc:'Each additional ally adjacent to the target adds 3 damage to this creature\'s attacks.'},
+      {name:'Howl',desc:'Once per round, grant all allied fauna within 3 tiles +10% accuracy until end of round.'},
+    ],
+  },
+  ironwood:{
     kingdom:'flora',
     name:'Canopy Ironwood', art:'🌳', artLabel:'close-up · upper canopy',
     hexShape:[[0,0],[1,0],[0,1]],
@@ -445,14 +528,14 @@ const CREATURES={
     combat: false,
     stats:{speed:'4.0s', o2cost:'+3', damageMin:null, damageMax:null, accuracy:null},
     needs:    [{label:'high',type:'attribute'}],
-    prefers:  [{label:'alpine',type:'meta-group'}],
+    prefers:  [],
     avoids:   [{label:'dry',type:'attribute'},{label:'volcanic',type:'meta-group'}],
-    idealTiles:[{label:'mountain',type:'terrain'},{label:'glacier',type:'terrain'}],
+    idealTiles:[{label:'mountain',type:'terrain'},{label:'hill',type:'terrain'}],
     abilities:[
       {name:'O₂ Well',desc:'Generates +2 O₂ per round distributed to all adjacent allies.'},
     ],
   },
-  funga:{
+  veilcap:{
     kingdom:'funga',
     name:'Pale Veilcap', art:'🍄', artLabel:'close-up · spore gills',
     hexShape:[[0,0]],
@@ -464,7 +547,7 @@ const CREATURES={
     combat: false,
     stats:{speed:'3.1s', o2cost:0, damageMin:null, damageMax:null, accuracy:null},
     needs:    [{label:'terrestrial',type:'meta-group'}],
-    prefers:  [{label:'cavern',type:'meta-group'},{label:'wet',type:'attribute'}],
+    prefers:  [{label:'cavern',type:'meta-group'},{label:'standing water',type:'meta-group'}],
     avoids:   [{label:'dry',type:'attribute'}],
     idealTiles:[{label:'cave',type:'terrain'},{label:'lava tube',type:'terrain'}],
     abilities:[
@@ -475,7 +558,7 @@ const CREATURES={
 };
 
 // ── Art toggle state ──────────────────────────────────────────────────────────
-const artState={fauna:true, flora:true, funga:true};
+const artState={corvid:true, orca:true, hyena:true, wolf:true, ironwood:true, veilcap:true};
 
 function toggleArt(key){
   artState[key]=!artState[key];
@@ -699,7 +782,8 @@ function switchCard(btn,key){
 function openMatrix(key){
   renderMatrix(key);
   const cardBg={fauna:'#7a3500',flora:'#1e4a08',funga:'#3a1260'};
-  const hex=cardBg[key]||'#1a1a1a';
+  const kingdom=CREATURES[key].kingdom;
+  const hex=cardBg[kingdom]||'#1a1a1a';
   const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
   const dr=Math.round(r*0.55),dg=Math.round(g*0.55),db=Math.round(b*0.55);
   document.getElementById('matrixBox').style.background='rgb('+dr+','+dg+','+db+')';
@@ -708,7 +792,7 @@ function openMatrix(key){
 function closeMatrix(){ document.getElementById('matrixOverlay').classList.remove('open'); document.getElementById('popover').classList.remove('visible'); }
 function handleOverlayClick(e){ if(e.target===document.getElementById('matrixOverlay')) closeMatrix(); }
 
-renderCard('fauna');
+renderCard('corvid');
 </script>
 </body>
 </html>
